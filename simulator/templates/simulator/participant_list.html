@@ -1,0 +1,51 @@
+<!-- simulator/templates/simulator/participant_list.html -->
+
+{% extends 'simulator/base.html' %}
+
+{% block title %}Participants{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-users"></i> Mes Participants</h2>
+        <a href="{% url 'simulator:participant_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nouveau Participant
+        </a>
+    </div>
+
+    <div class="row g-4">
+        {% for participant in participants %}
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-user"></i> {{ participant.speaker_name }}
+                    </h5>
+                    {% if participant.is_system %}
+                    <span class="badge bg-info">Système</span>
+                    {% else %}
+                    <span class="badge bg-success">Utilisateur</span>
+                    {% endif %}
+                    <p class="text-muted mt-2">
+                        <small>Créé le {{ participant.created_at|date:"d M Y" }}</small>
+                    </p>
+                    <form method="post" action="{% url 'simulator:participant_delete' participant.pk %}"
+                        class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Supprimer?')">
+                            <i class="fas fa-trash"></i> Supprimer
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle"></i> Aucun participant
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -3,7 +3,7 @@ import uuid
 import wave
 
 import pyaudio
-import whisper
+# import whisper
 from django.conf import settings
 from django.utils import timezone
 from pydub import AudioSegment
@@ -112,23 +112,23 @@ def convert_audio(input_path, output_format="mp3", bitrate=None, mpeg_layer=None
 # ========================
 
 
-def transcribe_audio(file_path: str) -> str:
-    """
-    Converts speech to text using OpenAI's Whisper
+# def transcribe_audio(file_path: str) -> str:
+#     """
+#     Converts speech to text using OpenAI's Whisper
 
-    Args:
-    file_path (str): Path to audio file
+#     Args:
+#     file_path (str): Path to audio file
 
-    Returns:
-    str: Transcribed text (lowercase, no punctuation)
+#     Returns:
+#     str: Transcribed text (lowercase, no punctuation)
 
-    Reference: Radford et al. (2022) Robust Speech Recognition
-    via Large-Scale Weak Supervision
-    """
-    model = whisper.load_model(name="small")
-    result = model.transcribe(audio=file_path, verbose=True, language="fr")
-    print(f"===> Detected Language: {result['language']} <====")
-    return str(result["text"]).strip()
+#     Reference: Radford et al. (2022) Robust Speech Recognition
+#     via Large-Scale Weak Supervision
+#     """
+#     model = whisper.load_model(name="small")
+#     result = model.transcribe(audio=file_path, verbose=True, language="fr")
+#     print(f"===> Detected Language: {result['language']} <====")
+#     return str(result["text"]).strip()
 
 
 def text_to_speech(text: str, output_path: str = ".", lang: str = "fr") -> str:

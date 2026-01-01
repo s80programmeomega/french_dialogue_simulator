@@ -1,0 +1,80 @@
+<!-- Update simulator/templates/simulator/simulation_detail.html -->
+
+{% extends 'simulator/base.html' %}
+
+{% block title %}{{ simulation.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>{{ simulation.title }}</h2>
+            <span class="badge bg-{% if simulation.status == 'completed' %}success{% elif simulation.status == 'in_progress' %}warning{% else %}secondary{% endif %}">
+                {{ simulation.get_status_display }}
+            </span>
+        </div>
+        <div>
+            {% if simulation.status != 'completed' %}
+                <a href="{% url 'simulator:simulation_run' simulation.pk %}" class="btn btn-success">
+                    <i class="fas fa-play"></i> Démarrer
+                </a>
+            {% endif %}
+            <a href="{% url 'simulator:simulation_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-book"></i> Dialogues</h5>
+                    <a href="{% url 'simulator:dialogue_create' simulation.pk %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus"></i> Ajouter
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if dialogues %}
+                        <div class="list-group">
+                            {% for dialogue in dialogues %}
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between">
+                                        <div>
+                                            <h6>{{ dialogue.title }}</h6>
+                                            <small class="text-muted">{{ dialogue.description }}</small>
+                                        </div>
+                                        <div>
+                                            <span class="badge badge-difficulty bg-info me-2">{{ dialogue.get_difficulty_level_display }}</span>
+                                            <a href="{% url 'simulator:dialogue_edit' dialogue.pk %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-edit"></i> Éditer
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">Aucun dialogue ajouté</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle"></i> Informations</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Créée le:</strong> {{ simulation.created_at|date:"d M Y H:i" }}</p>
+                    {% if simulation.completed_at %}
+                        <p><strong>Complétée le:</strong> {{ simulation.completed_at|date:"d M Y H:i" }}</p>
+                    {% endif %}
+                    <p><strong>Dialogues:</strong> {{ dialogues.count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

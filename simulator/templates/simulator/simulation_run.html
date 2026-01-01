@@ -1,0 +1,203 @@
+<!-- simulator/templates/simulator/simulation_run.html -->
+
+{% extends 'simulator/base.html' %}
+
+{% block title %}Exécution - {{ simulation.title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-microphone"></i> {{ simulation.title }}</h2>
+            {% if current_dialogue %}
+            <p class="lead">{{ current_dialogue.title }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-comments"></i> Dialogue</h5>
+                </div>
+                <div class="card-body">
+                    {% if lines %}
+                    {% for line in lines %}
+                    <div class="mb-3 p-3 {% if line.participant.is_system %}bg-light{% else %}border{% endif %} rounded"
+                        id="line-{{ line.id }}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <strong class="text-primary">
+                                    <i class="fas fa-user"></i> {{ line.participant.speaker_name }}
+                                </strong>
+                                <p class="mb-2 mt-2">{{ line.text }}</p>
+                            </div>
+                            <span class="badge bg-secondary">{{ line.order }}</span>
+                        </div>
+
+                        <div class="mt-2">
+                            {% if not line.participant.is_system %}
+                            <button class="btn btn-sm btn-danger record-btn" data-line-id="{{ line.id }}">
+                                <i class="fas fa-microphone"></i> <span>Enregistrer</span>
+                            </button>
+                            <audio class="audio-player d-none mt-2" controls style="width: 100%;"></audio>
+                            {% else %}
+                            <button class="btn btn-sm btn-success play-system-btn" data-line-id="{{ line.id }}">
+                                <i class="fas fa-volume-up"></i> Écouter
+                            </button>
+                            <audio class="system-audio d-none mt-2" controls style="width: 100%;"></audio>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-muted text-center">Aucune ligne de dialogue</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-tasks"></i> Progression</h5>
+                </div>
+                <div class="card-body">
+                    <p>Total lignes: <strong>{{ lines.count }}</strong></p>
+                    <div class="progress mb-3">
+                        <div class="progress-bar bg-success" id="progress-bar" role="progressbar" style="width: 0%">
+                        </div>
+                    </div>
+                    <a href="{% url 'simulator:simulation_complete' simulation.pk %}" class="btn btn-success w-100">
+                        <i class="fas fa-check"></i> Terminer
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let mediaRecorder;
+    let audioChunks = [];
+    let currentLineId = null;
+
+    // Record button handler
+    document.querySelectorAll('.record-btn').forEach(btn => {
+        btn.addEventListener('click', async function () {
+            const lineId = this.dataset.lineId;
+            const icon = this.querySelector('i');
+            const text = this.querySelector('span');
+
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+                // Start recording
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+                    currentLineId = lineId;
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        await saveRecording(currentLineId, audioBlob);
+                        stream.getTracks().forEach(track => track.stop());
+                    };
+
+                    mediaRecorder.start();
+                    icon.className = 'fas fa-stop';
+                    text.textContent = 'Arrêter';
+                    this.classList.remove('btn-danger');
+                    this.classList.add('btn-warning');
+                } catch (err) {
+                    alert('Erreur: ' + err.message);
+                }
+            } else {
+                // Stop recording
+                mediaRecorder.stop();
+                icon.className = 'fas fa-microphone';
+                text.textContent = 'Enregistrer';
+                this.classList.remove('btn-warning');
+                this.classList.add('btn-danger');
+            }
+        });
+    });
+
+    // Save recording to server
+    async function saveRecording(lineId, audioBlob) {
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+            const base64Audio = reader.result;
+
+            const formData = new FormData();
+            formData.append('audio_data', base64Audio);
+
+            try {
+                const response = await fetch(`/api/line/${lineId}/record/`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const lineDiv = document.getElementById(`line-${lineId}`);
+                    const audioPlayer = lineDiv.querySelector('.audio-player');
+                    audioPlayer.src = data.audio_url;
+                    audioPlayer.classList.remove('d-none');
+                    updateProgress();
+                } else {
+                    alert('Erreur: ' + data.error);
+                }
+            } catch (err) {
+                alert('Erreur de sauvegarde: ' + err.message);
+            }
+        };
+    }
+
+    // Play system audio
+    document.querySelectorAll('.play-system-btn').forEach(btn => {
+        btn.addEventListener('click', async function () {
+            const lineId = this.dataset.lineId;
+            const lineDiv = document.getElementById(`line-${lineId}`);
+            const audioPlayer = lineDiv.querySelector('.system-audio');
+
+            if (audioPlayer.src) {
+                audioPlayer.play();
+            } else {
+                try {
+                    const response = await fetch(`/api/line/${lineId}/generate/`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        audioPlayer.src = data.audio_url;
+                        audioPlayer.classList.remove('d-none');
+                        audioPlayer.play();
+                        updateProgress();
+                    } else {
+                        alert('Erreur: ' + data.error);
+                    }
+                } catch (err) {
+                    alert('Erreur: ' + err.message);
+                }
+            }
+        });
+    });
+
+    // Update progress bar
+    function updateProgress() {
+        const totalLines = document.querySelectorAll('[id^="line-"]').length;
+        const recordedLines = document.querySelectorAll('.audio-player:not(.d-none), .system-audio:not(.d-none)').length;
+        const percentage = (recordedLines / totalLines) * 100;
+        document.getElementById('progress-bar').style.width = percentage + '%';
+    }
+</script>
+{% endblock %}
