@@ -1,0 +1,12 @@
+django
+django-watchfiles
+django-browser-reload
+django-cleanup
+numpy
+levenshtein
+phonemizer
+# biopython
+# openai-whisper
+pydub
+PyAudio
+gtts
