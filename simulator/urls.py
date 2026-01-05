@@ -13,6 +13,11 @@ urlpatterns = [
     path("simulations/<int:pk>/", views.simulation_detail, name="simulation_detail"),
     path("simulations/<int:pk>/run/", views.simulation_run, name="simulation_run"),
     path(
+        "simulations/<int:pk>/next/",
+        views.next_dialogue,
+        name="next_dialogue",
+    ),
+    path(
         "simulations/<int:pk>/complete/",
         views.complete_simulation,
         name="simulation_complete",

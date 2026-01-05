@@ -66,8 +66,11 @@ def simulation_run(request, pk):
 
     dialogues = simulation.dialogues.all()
     current_dialogue = simulation.current_dialogue or dialogues.first()
-
+    
     if current_dialogue:
+        if not simulation.current_dialogue:
+            simulation.current_dialogue = current_dialogue
+            simulation.save()
         lines = current_dialogue.lines.select_related("participant").all()
     else:
         lines = []
@@ -78,6 +81,7 @@ def simulation_run(request, pk):
         {
             "simulation": simulation,
             "current_dialogue": current_dialogue,
+            "dialogues": dialogues,
             "lines": lines,
         },
     )
@@ -135,6 +139,27 @@ def generate_system_audio(request, line_id):
     )
 
     return JsonResponse({"success": True, "audio_url": recording.audio_file.url})
+
+
+def next_dialogue(request, pk):
+    simulation = get_object_or_404(Simulation, pk=pk)
+    dialogues = simulation.dialogues.all().order_by('order')
+    
+    if simulation.current_dialogue:
+        current_order = simulation.current_dialogue.order
+        next_dialogue = dialogues.filter(order__gt=current_order).first()
+        
+        if next_dialogue:
+            simulation.current_dialogue = next_dialogue
+            simulation.save()
+            messages.success(request, f"Dialogue suivant: {next_dialogue.title}")
+            return redirect("simulator:simulation_run", pk=pk)
+    
+    simulation.status = "completed"
+    simulation.completed_at = timezone.now()
+    simulation.save()
+    messages.success(request, "Simulation terminée avec succès!")
+    return redirect("simulator:simulation_detail", pk=pk)
 
 
 def complete_simulation(request, pk):

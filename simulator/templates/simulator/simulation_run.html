@@ -24,8 +24,8 @@
                 <div class="card-body">
                     {% if lines %}
                     {% for line in lines %}
-                    <div class="mb-3 p-3 {% if line.participant.is_system %}bg-light{% else %}border{% endif %} rounded"
-                        id="line-{{ line.id }}">
+                    <div class="mb-3 p-3 {% if line.participant.is_system %}bg-light{% else %}border{% endif %} rounded line-item"
+                        id="line-{{ line.id }}" data-order="{{ line.order }}">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
                                 <strong class="text-primary">
@@ -59,16 +59,40 @@
         </div>
 
         <div class="col-md-4">
-            <div class="card">
+            <div class="card mb-3">
                 <div class="card-header bg-white">
-                    <h5 class="mb-0"><i class="fas fa-tasks"></i> Progression</h5>
+                    <h5 class="mb-0"><i class="fas fa-list"></i> Dialogues</h5>
                 </div>
                 <div class="card-body">
-                    <p>Total lignes: <strong>{{ lines.count }}</strong></p>
+                    {% for dialogue in dialogues %}
+                    <div class="d-flex align-items-center mb-2">
+                        <span
+                            class="badge {% if dialogue == current_dialogue %}bg-primary{% else %}bg-secondary{% endif %} me-2">{{ dialogue.order }}</span>
+                        <small
+                            class="{% if dialogue == current_dialogue %}fw-bold{% endif %}">{{ dialogue.title }}</small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-tasks"></i> Progression</h5>
+                    <!-- Settings button: Opens modal for dialogue playback preferences -->
+                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <p>Dialogue actuel: <strong>{{ current_dialogue.order }}/{{ dialogues.count }}</strong></p>
+                    <p>Lignes: <strong id="completed-lines">0</strong>/<strong>{{ lines.count }}</strong></p>
                     <div class="progress mb-3">
                         <div class="progress-bar bg-success" id="progress-bar" role="progressbar" style="width: 0%">
                         </div>
                     </div>
+                    <button id="next-dialogue-btn" class="btn btn-primary w-100 mb-2" disabled>
+                        <i class="fas fa-forward"></i> Dialogue suivant
+                    </button>
                     <a href="{% url 'simulator:simulation_complete' simulation.pk %}" class="btn btn-success w-100">
                         <i class="fas fa-check"></i> Terminer
                     </a>
@@ -78,18 +102,253 @@
     </div>
 </div>
 
+<!-- Settings Modal: Configure dialogue playback behavior -->
+<div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <!-- Modal Header -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="settingsModalLabel">
+                    <i class="fas fa-cog"></i> Paramètres de Dialogue
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <!-- Modal Body: Settings toggles -->
+            <div class="modal-body">
+                <!-- Setting 1: Auto-Record -->
+                <div class="mb-4">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="autoRecordSwitch">
+                        <label class="form-check-label" for="autoRecordSwitch">
+                            <strong>Enregistrement automatique</strong>
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-2">
+                        Démarre automatiquement l'enregistrement ou génère l'audio système lorsqu'une ligne devient active.
+                    </small>
+                </div>
+
+                <!-- Setting 2: Auto-Play -->
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="autoPlaySwitch" checked>
+                        <label class="form-check-label" for="autoPlaySwitch">
+                            <strong>Lecture automatique</strong>
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-2">
+                        Lit automatiquement l'audio après l'enregistrement ou la génération.
+                    </small>
+                </div>
+            </div>
+            
+            <!-- Modal Footer: Action buttons -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Fermer
+                </button>
+                <button type="button" class="btn btn-primary" id="saveSettingsBtn">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
+<style>
+    .line-item {
+        transition: all 0.3s ease;
+    }
+
+    .line-active {
+        border: 3px solid #0d6efd !important;
+        box-shadow: 0 0 15px rgba(13, 110, 253, 0.3);
+        background-color: #e7f1ff !important;
+    }
+
+    .line-completed {
+        opacity: 0.6;
+        border-color: #198754 !important;
+    }
+</style>
 <script>
+    // ============================================
+    // SETTINGS MANAGEMENT
+    // ============================================
+    
+    /**
+     * Settings object: Stores user preferences for dialogue playback
+     * - autoRecord: Auto-start recording/generation when line becomes active
+     * - autoPlay: Auto-play audio after recording/generation completes
+     */
+    const settings = {
+        autoRecord: false,  // Default: OFF (manual control)
+        autoPlay: true      // Default: ON (current behavior)
+    };
+
+    /**
+     * Load settings from localStorage
+     * Called on page load to restore user preferences
+     */
+    function loadSettings() {
+        // Try to get saved settings from browser storage
+        const savedAutoRecord = localStorage.getItem('dialogueAutoRecord');
+        const savedAutoPlay = localStorage.getItem('dialogueAutoPlay');
+        
+        // Apply saved settings if they exist, otherwise use defaults
+        if (savedAutoRecord !== null) {
+            settings.autoRecord = savedAutoRecord === 'true';
+        }
+        if (savedAutoPlay !== null) {
+            settings.autoPlay = savedAutoPlay === 'true';
+        }
+        
+        // Update modal toggle switches to reflect current settings
+        document.getElementById('autoRecordSwitch').checked = settings.autoRecord;
+        document.getElementById('autoPlaySwitch').checked = settings.autoPlay;
+        
+        console.log('Settings loaded:', settings);
+    }
+
+    /**
+     * Save settings to localStorage
+     * Called when user clicks "Enregistrer" button in modal
+     */
+    function saveSettings() {
+        // Read current state of toggle switches
+        settings.autoRecord = document.getElementById('autoRecordSwitch').checked;
+        settings.autoPlay = document.getElementById('autoPlaySwitch').checked;
+        
+        // Persist to browser storage
+        localStorage.setItem('dialogueAutoRecord', settings.autoRecord);
+        localStorage.setItem('dialogueAutoPlay', settings.autoPlay);
+        
+        console.log('Settings saved:', settings);
+        
+        // Close modal using Bootstrap's modal API
+        const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
+        modal.hide();
+        
+        // Show success feedback
+        alert('Paramètres enregistrés avec succès!');
+        
+        // If auto-record was just enabled, trigger it for current active line
+        if (settings.autoRecord) {
+            triggerAutoRecord();
+        }
+    }
+
+    // ============================================
+    // EVENT LISTENERS FOR SETTINGS
+    // ============================================
+    
+    // Save button click handler
+    document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+    
+    // Load settings when page loads
+    loadSettings();
+
+    // ============================================
+    // EXISTING CODE BELOW
+    // ============================================
+    
     let mediaRecorder;
     let audioChunks = [];
     let currentLineId = null;
+
+    // Initialize: highlight first incomplete line
+    function highlightCurrentLine() {
+        const lines = Array.from(document.querySelectorAll('.line-item'));
+
+        // Find first incomplete line in order
+        let currentActiveLine = null;
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const hasAudio = line.querySelector('.audio-player:not(.d-none), .system-audio:not(.d-none)');
+
+            if (hasAudio) {
+                // Mark as completed
+                line.classList.add('line-completed');
+                line.classList.remove('line-active');
+            } else {
+                // First incomplete line becomes active
+                if (!currentActiveLine) {
+                    line.classList.add('line-active');
+                    line.classList.remove('line-completed');
+                    line.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    currentActiveLine = line;
+                } else {
+                    // All other incomplete lines remain neutral
+                    line.classList.remove('line-active', 'line-completed');
+                }
+            }
+        }
+    }
+
+    // Call on page load
+    highlightCurrentLine();
+    
+    // ============================================
+    // AUTO-RECORD FUNCTIONALITY
+    // ============================================
+    
+    /**
+     * Trigger auto-record for the active line
+     * Called after a line is completed and next line becomes active
+     * Only triggers if settings.autoRecord is enabled
+     */
+    function triggerAutoRecord() {
+        // Check if auto-record is enabled
+        if (!settings.autoRecord) {
+            return; // Manual mode: user must click buttons
+        }
+        
+        // Small delay to allow UI to update
+        setTimeout(() => {
+            // Find the currently active line
+            const activeLine = document.querySelector('.line-active');
+            if (!activeLine) {
+                return; // No active line (dialogue complete)
+            }
+            
+            const lineId = activeLine.id.replace('line-', '');
+            
+            // Check if it's a user line (has record button) or system line (has play button)
+            const recordBtn = activeLine.querySelector('.record-btn');
+            const playBtn = activeLine.querySelector('.play-system-btn');
+            
+            if (recordBtn) {
+                // User line: Auto-trigger recording
+                console.log('Auto-record: Triggering user recording for line', lineId);
+                recordBtn.click();
+            } else if (playBtn) {
+                // System line: Auto-trigger TTS generation/playback
+                console.log('Auto-record: Triggering system audio for line', lineId);
+                playBtn.click();
+            }
+        }, 500); // 500ms delay for smooth transition
+    }
+    
+    // Trigger auto-record on initial page load if enabled
+    triggerAutoRecord();
 
     // Record button handler
     document.querySelectorAll('.record-btn').forEach(btn => {
         btn.addEventListener('click', async function () {
             const lineId = this.dataset.lineId;
+            const lineDiv = document.getElementById(`line-${lineId}`);
+
+            // Check if this is the active line
+            if (!lineDiv.classList.contains('line-active')) {
+                //alert('Veuillez compléter les lignes précédentes d\'abord.');
+                return;
+            }
+
             const icon = this.querySelector('i');
             const text = this.querySelector('span');
 
@@ -153,7 +412,26 @@
                     const audioPlayer = lineDiv.querySelector('.audio-player');
                     audioPlayer.src = data.audio_url;
                     audioPlayer.classList.remove('d-none');
-                    updateProgress();
+
+                    // SETTINGS INTEGRATION: Check autoPlay setting
+                    if (settings.autoPlay) {
+                        // Auto-play enabled: Play audio and move to next line when finished
+                        audioPlayer.play();
+                        audioPlayer.onended = () => {
+                            updateProgress();
+                            highlightCurrentLine();
+                            triggerAutoRecord(); // Trigger next line if autoRecord is ON
+                        };
+                    } else {
+                        // Auto-play disabled: User must manually click play
+                        // Setup onended handler for when user plays manually
+                        audioPlayer.onended = () => {
+                            updateProgress();
+                            highlightCurrentLine();
+                            triggerAutoRecord(); // Trigger next line if autoRecord is ON
+                        };
+                        updateProgress();
+                    }
                 } else {
                     alert('Erreur: ' + data.error);
                 }
@@ -168,11 +446,24 @@
         btn.addEventListener('click', async function () {
             const lineId = this.dataset.lineId;
             const lineDiv = document.getElementById(`line-${lineId}`);
+
+            // Check if this is the active line
+            if (!lineDiv.classList.contains('line-active')) {
+                return;
+            }
+
             const audioPlayer = lineDiv.querySelector('.system-audio');
 
             if (audioPlayer.src) {
+                // Audio already generated, just play it
                 audioPlayer.play();
+                audioPlayer.onended = () => {
+                    updateProgress();
+                    highlightCurrentLine();
+                    triggerAutoRecord(); // Trigger next line if autoRecord is ON
+                };
             } else {
+                // Generate TTS audio
                 try {
                     const response = await fetch(`/api/line/${lineId}/generate/`);
                     const data = await response.json();
@@ -180,8 +471,25 @@
                     if (data.success) {
                         audioPlayer.src = data.audio_url;
                         audioPlayer.classList.remove('d-none');
-                        audioPlayer.play();
-                        updateProgress();
+                        
+                        // SETTINGS INTEGRATION: Check autoPlay setting
+                        if (settings.autoPlay) {
+                            // Auto-play enabled: Play immediately
+                            audioPlayer.play();
+                            audioPlayer.onended = () => {
+                                updateProgress();
+                                highlightCurrentLine();
+                                triggerAutoRecord(); // Trigger next line if autoRecord is ON
+                            };
+                        } else {
+                            // Auto-play disabled: User must manually click play
+                            audioPlayer.onended = () => {
+                                updateProgress();
+                                highlightCurrentLine();
+                                triggerAutoRecord(); // Trigger next line if autoRecord is ON
+                            };
+                            updateProgress();
+                        }
                     } else {
                         alert('Erreur: ' + data.error);
                     }
@@ -198,6 +506,17 @@
         const recordedLines = document.querySelectorAll('.audio-player:not(.d-none), .system-audio:not(.d-none)').length;
         const percentage = (recordedLines / totalLines) * 100;
         document.getElementById('progress-bar').style.width = percentage + '%';
+        document.getElementById('completed-lines').textContent = recordedLines;
+
+        // Enable next dialogue button when all lines completed
+        if (recordedLines === totalLines && totalLines > 0) {
+            document.getElementById('next-dialogue-btn').disabled = false;
+        }
     }
+
+    // Next dialogue button handler
+    document.getElementById('next-dialogue-btn').addEventListener('click', function () {
+        window.location.href = "{% url 'simulator:next_dialogue' simulation.pk %}";
+    });
 </script>
 {% endblock %}
