@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "django_watchfiles",
     "django_browser_reload",
     "django_cleanup.apps.CleanupConfig",
+    "django_extensions",
 ]
 
 MIDDLEWARE = [
