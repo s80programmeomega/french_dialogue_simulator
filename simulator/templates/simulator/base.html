@@ -33,6 +33,9 @@
                 background: linear-gradient(180deg, var(--primary-color) 0%, var(--secondary-color) 100%);
                 padding: 20px 0;
                 z-index: 1000;
+                /* Default: visible on desktop, will be overridden on mobile */
+                transform: translateX(0);
+                transition: transform 0.3s ease;
             }
 
             .sidebar .brand {
@@ -82,12 +85,172 @@
                 border-radius: 10px;
                 padding: 15px;
             }
+
+            /* ============================================
+               RESPONSIVE SIDEBAR STYLES
+               ============================================ */
+
+            /* Hamburger toggle button (mobile only) */
+            .sidebar-toggle {
+                position: fixed;
+                top: 15px;
+                left: 15px;
+                z-index: 1100;
+                background: var(--primary-color);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                width: 45px;
+                height: 45px;
+                font-size: 1.5rem;
+                cursor: pointer;
+                display: none; /* Hidden by default (desktop) */
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                transition: all 0.3s ease;
+            }
+
+            .sidebar-toggle:hover {
+                background: var(--secondary-color);
+                transform: scale(1.05);
+            }
+
+            /* Overlay backdrop (mobile only) */
+            .sidebar-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 999;
+                display: none; /* Hidden by default */
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+
+            /* Show overlay when sidebar is open */
+            body.sidebar-open .sidebar-overlay {
+                display: block;
+                opacity: 1;
+            }
+
+            /* Mobile styles (screens smaller than 768px) */
+            @media (max-width: 767px) {
+                /* Show hamburger button on mobile */
+                .sidebar-toggle {
+                    display: block !important;
+                }
+                
+                /* CRITICAL: Hide sidebar off-screen by default on mobile */
+                .sidebar {
+                    transform: translateX(-100%) !important;
+                    transition: transform 0.3s ease;
+                }
+                
+                /* Show sidebar ONLY when body has 'sidebar-open' class */
+                body.sidebar-open .sidebar {
+                    transform: translateX(0) !important;
+                }
+                
+                /* Remove left margin from main content on mobile */
+                .main-content {
+                    margin-left: 0 !important;
+                    padding-top: 70px; /* Space for hamburger button */
+                }
+            }
+
+            /* Tablet and Desktop (768px and above) */
+            @media (min-width: 768px) {
+                /* Hide hamburger and overlay on desktop */
+                .sidebar-toggle,
+                .sidebar-overlay {
+                    display: none !important;
+                }
+                
+                /* Sidebar always visible on desktop */
+                .sidebar {
+                    transform: translateX(0) !important;
+                }
+                
+                /* Ensure main content has margin on desktop */
+                .main-content {
+                    margin-left: var(--sidebar-width) !important;
+                    padding-top: 30px !important;
+                }
+            }
+
+            /* ============================================
+               MOBILE UX OPTIMIZATIONS
+               ============================================ */
+
+            /* Touch-friendly buttons on mobile */
+            @media (max-width: 767px) {
+                /* Override btn-sm to regular size for better touch targets */
+                .btn-sm {
+                    padding: 0.5rem 1rem;
+                    font-size: 1rem;
+                    min-height: 44px; /* Apple iOS minimum touch target */
+                }
+
+                /* Larger audio controls for easier interaction */
+                audio {
+                    height: 48px;
+                }
+
+                /* Reduce card padding to maximize content space */
+                .card-body {
+                    padding: 1rem;
+                }
+
+                /* Better spacing for dialogue lines */
+                .line-item {
+                    padding: 1rem !important;
+                }
+
+                /* Larger settings gear icon */
+                .btn-outline-secondary {
+                    min-width: 44px;
+                    min-height: 44px;
+                }
+            }
+
+            /* Modal responsiveness for small screens */
+            @media (max-width: 576px) {
+                .modal-dialog {
+                    margin: 0.5rem;
+                    max-width: calc(100% - 1rem);
+                }
+
+                /* Larger modal text for readability */
+                .modal-body {
+                    font-size: 0.95rem;
+                }
+
+                /* Stack modal footer buttons on very small screens */
+                .modal-footer {
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+
+                .modal-footer .btn {
+                    width: 100%;
+                }
+            }
         </style>
 
         {% block extra_css %}{% endblock %}
     </head>
 
     <body>
+        <script>document.body.classList.remove('sidebar-open');</script>
+        <!-- Mobile Hamburger Menu Button -->
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Overlay backdrop for mobile sidebar -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="brand">
@@ -124,6 +287,19 @@
 
         <!-- Bootstrap 5 JS -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+        <!-- Responsive Sidebar Toggle Script -->
+        <script>
+            // Toggle sidebar when hamburger clicked
+            document.getElementById('sidebarToggle').addEventListener('click', () => {
+                document.body.classList.toggle('sidebar-open');
+            });
+            
+            // Close sidebar when overlay clicked
+            document.getElementById('sidebarOverlay').addEventListener('click', () => {
+                document.body.classList.remove('sidebar-open');
+            });
+        </script>
 
         {% block extra_js %}{% endblock %}
     </body>
