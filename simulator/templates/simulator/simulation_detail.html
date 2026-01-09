@@ -62,6 +62,26 @@
         </div>
         
         <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="fas fa-volume-up"></i> Audio Global</h5>
+                </div>
+                <div class="card-body">
+                    {% if simulation.final_audio %}
+                        <audio controls class="w-100 mb-3">
+                            <source src="{{ simulation.final_audio.url }}" type="audio/mpeg">
+                        </audio>
+                        <a href="{{ simulation.final_audio.url }}" download="{{ simulation.title }}_audio_complet.mp3" class="btn btn-outline-success w-100 mb-2">
+                            <i class="fas fa-download"></i> Télécharger Audio Complet
+                        </a>
+                    {% endif %}
+                    <button id="generateAudioBtn" class="btn btn-primary w-100">
+                        <i class="fas fa-magic"></i> Générer Audio Global
+                    </button>
+                    <div id="audioStatus" class="mt-2 text-center"></div>
+                </div>
+            </div>
+            
             <div class="card">
                 <div class="card-header bg-white">
                     <h5 class="mb-0"><i class="fas fa-info-circle"></i> Informations</h5>
@@ -77,4 +97,33 @@
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('generateAudioBtn').addEventListener('click', function() {
+    const btn = this;
+    const status = document.getElementById('audioStatus');
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Génération...';
+    status.innerHTML = '<small class="text-info">Génération en cours...</small>';
+    
+    fetch('{% url "simulator:generate_simulation_audio" simulation.pk %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                status.innerHTML = '<small class="text-success">✓ Audio généré avec succès!</small>';
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                status.innerHTML = '<small class="text-danger">✗ ' + data.error + '</small>';
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-magic"></i> Générer Audio Global';
+            }
+        })
+        .catch(error => {
+            status.innerHTML = '<small class="text-danger">✗ Erreur de connexion</small>';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-magic"></i> Générer Audio Global';
+        });
+});
+</script>
 {% endblock %}

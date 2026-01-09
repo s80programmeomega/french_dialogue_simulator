@@ -1,0 +1,66 @@
+{
+  "mcpServers": {
+    "brave-search": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-brave-search"],
+      "transport": "stdio",
+      "env": {
+        "BRAVE_API_KEY": "your-brave-api-key"
+      }
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-filesystem", "/home/jonas/coding/french_dialogue_simulator"],
+      "transport": "stdio"
+    },
+    "sqlite": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-sqlite", "/home/jonas/coding/french_dialogue_simulator/db.sqlite3"],
+      "transport": "stdio"
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-memory"],
+      "transport": "stdio"
+    },
+    "django-mcp": {
+      "command": "python",
+      "args": ["-m", "mcp_server_django"],
+      "transport": "stdio",
+      "cwd": "/home/jonas/coding/french_dialogue_simulator",
+      "env": {
+        "DJANGO_SETTINGS_MODULE": "core.settings",
+        "PYTHONPATH": "/home/jonas/coding/french_dialogue_simulator"
+      }
+    },
+    "python-ast": {
+      "command": "python",
+      "args": ["-m", "mcp_server_python_ast"],
+      "transport": "stdio",
+      "cwd": "/home/jonas/coding/french_dialogue_simulator"
+    },
+    "pytest-mcp": {
+      "command": "python",
+      "args": ["-m", "mcp_server_pytest"],
+      "transport": "stdio",
+      "cwd": "/home/jonas/coding/french_dialogue_simulator",
+      "env": {
+        "DJANGO_SETTINGS_MODULE": "core.settings"
+      }
+    },
+    "git-mcp": {
+      "command": "python",
+      "args": ["-m", "mcp_server_git"],
+      "transport": "stdio",
+      "cwd": "/home/jonas/coding/french_dialogue_simulator"
+    },
+    "postgresql-mcp": {
+      "command": "python",
+      "args": ["-m", "mcp_server_postgresql"],
+      "transport": "stdio",
+      "env": {
+        "DATABASE_URL": "postgresql://localhost/french_dialogue_simulator"
+      }
+    }
+  }
+}

@@ -9,7 +9,7 @@ from django.utils import timezone
 import base64
 import os
 from .models import Simulation, Dialogue, Participant, DialogueLine, LineRecording
-from .utils import text_to_speech
+from .utils import text_to_speech, generate_simulation_audio
 
 
 def home(request):
@@ -141,6 +141,27 @@ def generate_system_audio(request, line_id):
     return JsonResponse({"success": True, "audio_url": recording.audio_file.url})
 
 
+def generate_complete_dialogue_audio(request, dialogue_id):
+    dialogue = get_object_or_404(Dialogue, pk=dialogue_id)
+    
+    if dialogue.generate_complete_audio():
+        return JsonResponse({"success": True, "audio_url": dialogue.complete_audio.url})
+    
+    return JsonResponse({"success": False, "error": "No recordings found"})
+
+
+def generate_simulation_audio_view(request, pk):
+    simulation = get_object_or_404(Simulation, pk=pk)
+    
+    audio_path = generate_simulation_audio(simulation)
+    if audio_path:
+        simulation.final_audio = audio_path
+        simulation.save()
+        return JsonResponse({"success": True, "audio_url": simulation.final_audio.url})
+    
+    return JsonResponse({"success": False, "error": "No dialogue audios found"})
+
+
 def next_dialogue(request, pk):
     simulation = get_object_or_404(Simulation, pk=pk)
     dialogues = simulation.dialogues.all().order_by('order')
@@ -155,8 +176,16 @@ def next_dialogue(request, pk):
             messages.success(request, f"Dialogue suivant: {next_dialogue.title}")
             return redirect("simulator:simulation_run", pk=pk)
     
+    # Simulation is complete - generate final audio automatically
     simulation.status = "completed"
     simulation.completed_at = timezone.now()
+    
+    # Generate final audio if not already exists
+    if not simulation.final_audio:
+        audio_path = generate_simulation_audio(simulation)
+        if audio_path:
+            simulation.final_audio = audio_path
+    
     simulation.save()
     messages.success(request, "Simulation terminée avec succès!")
     return redirect("simulator:simulation_detail", pk=pk)
@@ -166,8 +195,14 @@ def complete_simulation(request, pk):
     simulation = get_object_or_404(Simulation, pk=pk)
     simulation.status = "completed"
     simulation.completed_at = timezone.now()
+    
+    # Generate final audio automatically if not already exists
+    if not simulation.final_audio:
+        audio_path = generate_simulation_audio(simulation)
+        if audio_path:
+            simulation.final_audio = audio_path
+    
     simulation.save()
-
     messages.success(request, "Simulation terminée avec succès!")
     return redirect("simulator:simulation_detail", pk=pk)
 

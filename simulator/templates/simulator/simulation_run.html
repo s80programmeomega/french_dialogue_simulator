@@ -1,10 +1,7 @@
 <!-- simulator/templates/simulator/simulation_run.html -->
 
-{% extends 'simulator/base.html' %}
-
-{% block title %}Exécution - {{ simulation.title }}{% endblock %}
-
-{% block content %}
+{% extends 'simulator/base.html' %} {% block title %}Exécution - {{
+simulation.title }}{% endblock %} {% block content %}
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col">
@@ -17,13 +14,27 @@
 
     <div class="row">
         <div class="col-12 col-lg-8 mb-4 mb-lg-0">
+            <!-- Complete Dialogue Audio Player (hidden until generated) -->
+            <div class="card mb-3 d-none" id="complete-audio-card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-circle"></i> Audio Complet du Dialogue
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <audio id="complete-audio-player" controls style="width: 100%" class="mb-2"></audio>
+                    <a id="complete-audio-download" href="#" download class="btn btn-sm btn-outline-success">
+                        <i class="fas fa-download"></i> Télécharger
+                    </a>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0"><i class="fas fa-comments"></i> Dialogue</h5>
                 </div>
                 <div class="card-body">
-                    {% if lines %}
-                    {% for line in lines %}
+                    {% if lines %} {% for line in lines %}
                     <div class="mb-3 p-3 {% if line.participant.is_system %}bg-light{% else %}border{% endif %} rounded line-item"
                         id="line-{{ line.id }}" data-order="{{ line.order }}">
                         <div class="d-flex justify-content-between align-items-start">
@@ -41,17 +52,16 @@
                             <button class="btn btn-sm btn-danger record-btn" data-line-id="{{ line.id }}">
                                 <i class="fas fa-microphone"></i> <span>Enregistrer</span>
                             </button>
-                            <audio class="audio-player d-none mt-2" controls style="width: 100%;"></audio>
+                            <audio class="audio-player d-none mt-2" controls style="width: 100%"></audio>
                             {% else %}
                             <button class="btn btn-sm btn-success play-system-btn" data-line-id="{{ line.id }}">
                                 <i class="fas fa-volume-up"></i> Écouter
                             </button>
-                            <audio class="system-audio d-none mt-2" controls style="width: 100%;"></audio>
+                            <audio class="system-audio d-none mt-2" controls style="width: 100%"></audio>
                             {% endif %}
                         </div>
                     </div>
-                    {% endfor %}
-                    {% else %}
+                    {% endfor %} {% else %}
                     <p class="text-muted text-center">Aucune ligne de dialogue</p>
                     {% endif %}
                 </div>
@@ -79,13 +89,19 @@
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-tasks"></i> Progression</h5>
                     <!-- Settings button: Opens modal for dialogue playback preferences -->
-                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
+                        data-bs-target="#settingsModal">
                         <i class="fas fa-cog"></i>
                     </button>
                 </div>
                 <div class="card-body">
-                    <p>Dialogue actuel: <strong>{{ current_dialogue.order }}/{{ dialogues.count }}</strong></p>
-                    <p>Lignes: <strong id="completed-lines">0</strong>/<strong>{{ lines.count }}</strong></p>
+                    <p>
+                        Dialogue actuel:
+                        <strong>{{ current_dialogue.order }}/{{ dialogues.count }}</strong>
+                    </p>
+                    <p>
+                        Lignes: <strong id="completed-lines">0</strong>/<strong>{{ lines.count }}</strong>
+                    </p>
                     <div class="progress mb-3">
                         <div class="progress-bar bg-success" id="progress-bar" role="progressbar" style="width: 0%">
                         </div>
@@ -113,26 +129,27 @@
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            
+
             <!-- Modal Body: Settings toggles -->
             <div class="modal-body">
                 <!-- Setting 1: Auto-Record -->
                 <div class="mb-4">
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="autoRecordSwitch">
+                        <input class="form-check-input" type="checkbox" id="autoRecordSwitch" />
                         <label class="form-check-label" for="autoRecordSwitch">
                             <strong>Enregistrement automatique</strong>
                         </label>
                     </div>
                     <small class="text-muted d-block mt-2">
-                        Démarre automatiquement l'enregistrement ou génère l'audio système lorsqu'une ligne devient active.
+                        Démarre automatiquement l'enregistrement ou génère l'audio système
+                        lorsqu'une ligne devient active.
                     </small>
                 </div>
 
                 <!-- Setting 2: Auto-Play -->
                 <div class="mb-3">
                     <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="autoPlaySwitch" checked>
+                        <input class="form-check-input" type="checkbox" id="autoPlaySwitch" checked />
                         <label class="form-check-label" for="autoPlaySwitch">
                             <strong>Lecture automatique</strong>
                         </label>
@@ -142,7 +159,7 @@
                     </small>
                 </div>
             </div>
-            
+
             <!-- Modal Footer: Action buttons -->
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -156,9 +173,7 @@
     </div>
 </div>
 
-{% endblock %}
-
-{% block extra_js %}
+{% endblock %} {% block extra_js %}
 <style>
     .line-item {
         transition: all 0.3s ease;
@@ -179,7 +194,7 @@
     // ============================================
     // SETTINGS MANAGEMENT
     // ============================================
-    
+
     /**
      * Settings object: Stores user preferences for dialogue playback
      * - autoRecord: Auto-start recording/generation when line becomes active
@@ -198,7 +213,7 @@
         // Try to get saved settings from browser storage
         const savedAutoRecord = localStorage.getItem('dialogueAutoRecord');
         const savedAutoPlay = localStorage.getItem('dialogueAutoPlay');
-        
+
         // Apply saved settings if they exist, otherwise use defaults
         if (savedAutoRecord !== null) {
             settings.autoRecord = savedAutoRecord === 'true';
@@ -206,11 +221,11 @@
         if (savedAutoPlay !== null) {
             settings.autoPlay = savedAutoPlay === 'true';
         }
-        
+
         // Update modal toggle switches to reflect current settings
         document.getElementById('autoRecordSwitch').checked = settings.autoRecord;
         document.getElementById('autoPlaySwitch').checked = settings.autoPlay;
-        
+
         console.log('Settings loaded:', settings);
     }
 
@@ -222,20 +237,20 @@
         // Read current state of toggle switches
         settings.autoRecord = document.getElementById('autoRecordSwitch').checked;
         settings.autoPlay = document.getElementById('autoPlaySwitch').checked;
-        
+
         // Persist to browser storage
         localStorage.setItem('dialogueAutoRecord', settings.autoRecord);
         localStorage.setItem('dialogueAutoPlay', settings.autoPlay);
-        
+
         console.log('Settings saved:', settings);
-        
+
         // Close modal using Bootstrap's modal API
         const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
         modal.hide();
-        
+
         // Show success feedback
         alert('Paramètres enregistrés avec succès!');
-        
+
         // If auto-record was just enabled, trigger it for current active line
         if (settings.autoRecord) {
             triggerAutoRecord();
@@ -245,17 +260,17 @@
     // ============================================
     // EVENT LISTENERS FOR SETTINGS
     // ============================================
-    
+
     // Save button click handler
     document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
-    
+
     // Load settings when page loads
     loadSettings();
 
     // ============================================
     // EXISTING CODE BELOW
     // ============================================
-    
+
     let mediaRecorder;
     let audioChunks = [];
     let currentLineId = null;
@@ -292,11 +307,11 @@
 
     // Call on page load
     highlightCurrentLine();
-    
+
     // ============================================
     // AUTO-RECORD FUNCTIONALITY
     // ============================================
-    
+
     /**
      * Trigger auto-record for the active line
      * Called after a line is completed and next line becomes active
@@ -307,7 +322,7 @@
         if (!settings.autoRecord) {
             return; // Manual mode: user must click buttons
         }
-        
+
         // Small delay to allow UI to update
         setTimeout(() => {
             // Find the currently active line
@@ -315,13 +330,13 @@
             if (!activeLine) {
                 return; // No active line (dialogue complete)
             }
-            
+
             const lineId = activeLine.id.replace('line-', '');
-            
+
             // Check if it's a user line (has record button) or system line (has play button)
             const recordBtn = activeLine.querySelector('.record-btn');
             const playBtn = activeLine.querySelector('.play-system-btn');
-            
+
             if (recordBtn) {
                 // User line: Auto-trigger recording
                 console.log('Auto-record: Triggering user recording for line', lineId);
@@ -333,7 +348,7 @@
             }
         }, 500); // 500ms delay for smooth transition
     }
-    
+
     // Trigger auto-record on initial page load if enabled
     triggerAutoRecord();
 
@@ -416,7 +431,9 @@
                     // SETTINGS INTEGRATION: Check autoPlay setting
                     if (settings.autoPlay) {
                         // Auto-play enabled: Play audio and move to next line when finished
-                        audioPlayer.play();
+                        audioPlayer.play().catch(err => {
+                            console.log('Autoplay blocked:', err);
+                        });
                         audioPlayer.onended = () => {
                             updateProgress();
                             highlightCurrentLine();
@@ -456,7 +473,9 @@
 
             if (audioPlayer.src) {
                 // Audio already generated, just play it
-                audioPlayer.play();
+                audioPlayer.play().catch(err => {
+                    console.log('Autoplay blocked:', err);
+                });
                 audioPlayer.onended = () => {
                     updateProgress();
                     highlightCurrentLine();
@@ -471,11 +490,13 @@
                     if (data.success) {
                         audioPlayer.src = data.audio_url;
                         audioPlayer.classList.remove('d-none');
-                        
+
                         // SETTINGS INTEGRATION: Check autoPlay setting
                         if (settings.autoPlay) {
                             // Auto-play enabled: Play immediately
-                            audioPlayer.play();
+                            audioPlayer.play().catch(err => {
+                                console.log('Autoplay blocked:', err);
+                            });
                             audioPlayer.onended = () => {
                                 updateProgress();
                                 highlightCurrentLine();
@@ -511,8 +532,38 @@
         // Enable next dialogue button when all lines completed
         if (recordedLines === totalLines && totalLines > 0) {
             document.getElementById('next-dialogue-btn').disabled = false;
+            generateCompleteAudio();
         }
     }
+
+    // Generate complete dialogue audio
+    async function generateCompleteAudio() {
+        const dialogueId = {{ current_dialogue.id }};
+
+    const completeCard = document.getElementById('complete-audio-card');
+
+    // Check if already generated
+    if (!completeCard.classList.contains('d-none')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/dialogue/${dialogueId}/generate-complete/`);
+        const data = await response.json();
+
+        if (data.success) {
+            const player = document.getElementById('complete-audio-player');
+            const download = document.getElementById('complete-audio-download');
+
+            player.src = data.audio_url;
+            download.href = data.audio_url;
+            completeCard.classList.remove('d-none');
+            completeCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    } catch (err) {
+        console.error('Error generating complete audio:', err);
+    }
+  }
 
     // Next dialogue button handler
     document.getElementById('next-dialogue-btn').addEventListener('click', function () {

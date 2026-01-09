@@ -55,6 +55,16 @@ urlpatterns = [
         name="generate_system_audio",
     ),
     path(
+        "api/dialogue/<int:dialogue_id>/generate-complete/",
+        views.generate_complete_dialogue_audio,
+        name="generate_complete_dialogue_audio",
+    ),
+    path(
+        "api/simulation/<int:pk>/generate-audio/",
+        views.generate_simulation_audio_view,
+        name="generate_simulation_audio",
+    ),
+    path(
         "dialogue/<int:pk>/participant/create/",
         views.participant_create_inline,
         name="participant_create_inline",

@@ -77,6 +77,9 @@ class Dialogue(models.Model):
     order = models.PositiveIntegerField(
         validators=[MinValueValidator(1)], help_text="Order in simulation"
     )
+    complete_audio = models.FileField(
+        upload_to="dialogues/complete/", null=True, blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -85,6 +88,17 @@ class Dialogue(models.Model):
 
     def __str__(self):
         return self.title
+    
+    def generate_complete_audio(self):
+        """Generate complete dialogue audio by concatenating line recordings"""
+        from .utils import concatenate_dialogue_audio
+        
+        audio_path = concatenate_dialogue_audio(self)
+        if audio_path:
+            self.complete_audio = audio_path
+            self.save()
+            return True
+        return False
 
 
 class DialogueLine(models.Model):

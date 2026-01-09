@@ -1,12 +1,15 @@
 import os
+import random
 import uuid
 import wave
 
 import pyaudio
+
 # import whisper
 from django.conf import settings
 from django.utils import timezone
 from pydub import AudioSegment
+from gtts import gTTS
 
 
 def generate_id():
@@ -147,10 +150,104 @@ def text_to_speech(text: str, output_path: str = ".", lang: str = "fr") -> str:
         >>> text_to_speech("Bonjour, comment allez-vous?", "/path/to/output.mp3")
     """
 
-    from gtts import gTTS
-
     # Create TTS object and save to file
     tts = gTTS(text=text, lang=lang, slow=False)
     tts.save(output_path)
 
     return output_path
+
+
+def concatenate_dialogue_audio(dialogue):
+    """
+    Concatenates all line recordings for a dialogue into one audio file
+
+    Args:
+        dialogue: Dialogue model instance
+
+    Returns:
+        str: Path to concatenated audio file or None if no recordings
+    """
+
+    lines = dialogue.lines.filter(recording__isnull=False).order_by("order")
+
+    if not lines.exists():
+        return None
+
+    combined = AudioSegment.empty()
+
+    for line in lines:
+        try:
+            audio_path = line.recording.audio_file.path
+            audio = AudioSegment.from_file(audio_path)
+            combined += audio + AudioSegment.silent(duration=random.randint(500, 1000))
+        except Exception:
+            continue
+
+    if len(combined) == 0:
+        return None
+
+    output_path = os.path.join(
+        settings.MEDIA_ROOT,
+        "dialogues",
+        "complete",
+        f"dialogue_{dialogue.id}_{dialogue.title}.mp3",
+    )
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    combined.export(output_path, format="mp3")
+    return f"dialogues/complete/dialogue_{dialogue.id}_{dialogue.title}.mp3"
+
+
+def generate_simulation_audio(simulation):
+    """
+    Generates complete simulation audio by concatenating all dialogue audios
+    with TTS title transitions and 2-second pauses
+
+    Args:
+        simulation: Simulation model instance
+
+    Returns:
+        str: Path to simulation audio file or None if no dialogue audios
+    """
+    import tempfile
+
+    dialogues = simulation.dialogues.filter(complete_audio__isnull=False).order_by(
+        "order"
+    )
+
+    if not dialogues.exists():
+        return None
+
+    combined = AudioSegment.empty()
+
+    for dialogue in dialogues:
+        try:
+            # Generate TTS for dialogue title
+            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
+                title_audio_path = tmp.name
+            text_to_speech(dialogue.title, title_audio_path, lang="fr")
+            title_audio = AudioSegment.from_file(title_audio_path)
+
+            # Add title + 2s pause + dialogue audio + 2s pause
+            combined += title_audio + AudioSegment.silent(duration=2000)
+            dialogue_audio = AudioSegment.from_file(dialogue.complete_audio.path)
+            combined += dialogue_audio + AudioSegment.silent(duration=2000)
+
+            # Cleanup temp file
+            os.unlink(title_audio_path)
+        except Exception:
+            continue
+
+    if len(combined) == 0:
+        return None
+
+    output_path = os.path.join(
+        settings.MEDIA_ROOT,
+        "simulations",
+        "final",
+        f"simulation_{simulation.id}_{simulation.title}.mp3",
+    )
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    combined.export(output_path, format="mp3")
+    return f"simulations/final/simulation_{simulation.id}_{simulation.title}.mp3"
