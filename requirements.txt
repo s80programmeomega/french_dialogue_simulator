@@ -1,14 +1,10 @@
-django
-django-watchfiles
-django-browser-reload
+django==5.2.9
 django-cleanup
 django-extensions
-numpy
-levenshtein
-phonemizer
-# biopython
-# openai-whisper
-pydub
-PyAudio
+gunicorn
+whitenoise
+psycopg2-binary
+dj-database-url
 gtts
-Werkzeug
+pydub
+levenshtein
