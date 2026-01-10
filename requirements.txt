@@ -1,6 +1,4 @@
-django
-django-watchfiles
-django-browser-reload
+django==5.2.9
 django-cleanup
 django-extensions
 gunicorn
@@ -10,3 +8,4 @@ dj-database-url
 gtts
 pydub
 levenshtein
+audioop-lts
