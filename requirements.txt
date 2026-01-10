@@ -10,6 +10,7 @@ levenshtein
 phonemizer
 # biopython
 # openai-whisper
+PyAudio
 pydub
 gtts
 Werkzeug
