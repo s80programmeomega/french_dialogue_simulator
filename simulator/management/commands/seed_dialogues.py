@@ -55,14 +55,22 @@ class Command(BaseCommand):
 
         participants = {}
         for p_data in participants_data:
-            participant, created = Participant.objects.get_or_create(
+            participant = Participant.objects.filter(
                 user=user,
-                speaker_name=p_data["speaker_name"],
-                defaults={"is_system": p_data["is_system"]},
-            )
-            participants[p_data["speaker_name"]] = participant
-            if created:
+                speaker_name=p_data["speaker_name"]
+            ).first()
+            
+            if not participant:
+                participant = Participant.objects.create(
+                    user=user,
+                    speaker_name=p_data["speaker_name"],
+                    is_system=p_data["is_system"]
+                )
                 self.stdout.write(f"✓ Created participant: {participant.speaker_name}")
+            else:
+                self.stdout.write(f"✓ Using existing participant: {participant.speaker_name}")
+            
+            participants[p_data["speaker_name"]] = participant
 
         # Create simulation
         simulation = Simulation.objects.create(
