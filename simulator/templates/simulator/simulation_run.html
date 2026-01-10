@@ -1,7 +1,10 @@
 <!-- simulator/templates/simulator/simulation_run.html -->
 
-{% extends 'simulator/base.html' %} {% block title %}Exécution - {{
-simulation.title }}{% endblock %} {% block content %}
+{% extends 'simulator/base.html' %}
+
+{% block title %}Exécution - {{ simulation.title }}{% endblock %}
+
+{% block content %}
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col">
@@ -34,7 +37,8 @@ simulation.title }}{% endblock %} {% block content %}
                     <h5 class="mb-0"><i class="fas fa-comments"></i> Dialogue</h5>
                 </div>
                 <div class="card-body">
-                    {% if lines %} {% for line in lines %}
+                    {% if lines %}
+                    {% for line in lines %}
                     <div class="mb-3 p-3 {% if line.participant.is_system %}bg-light{% else %}border{% endif %} rounded line-item"
                         id="line-{{ line.id }}" data-order="{{ line.order }}">
                         <div class="d-flex justify-content-between align-items-start">
@@ -49,19 +53,26 @@ simulation.title }}{% endblock %} {% block content %}
 
                         <div class="mt-2">
                             {% if not line.participant.is_system %}
-                            <button class="btn btn-sm btn-danger record-btn" data-line-id="{{ line.id }}">
+                            <button class="btn btn-sm record-btn" data-line-id="{{ line.id }}" data-participant-id="{{ line.participant.id }}">
                                 <i class="fas fa-microphone"></i> <span>Enregistrer</span>
                             </button>
+                            <button class="btn btn-sm btn-outline-secondary retry-btn d-none" data-line-id="{{ line.id }}">
+                                <i class="fas fa-redo"></i> Réessayer
+                            </button>
+                            <div class="silence-message d-none mt-2 text-warning">
+                                <small><i class="fas fa-exclamation-triangle"></i> Aucune voix détectée. Veuillez réessayer.</small>
+                            </div>
                             <audio class="audio-player d-none mt-2" controls style="width: 100%"></audio>
                             {% else %}
-                            <button class="btn btn-sm btn-success play-system-btn" data-line-id="{{ line.id }}">
+                            <button class="btn btn-sm play-system-btn" data-line-id="{{ line.id }}" data-participant-id="{{ line.participant.id }}">
                                 <i class="fas fa-volume-up"></i> Écouter
                             </button>
                             <audio class="system-audio d-none mt-2" controls style="width: 100%"></audio>
                             {% endif %}
                         </div>
                     </div>
-                    {% endfor %} {% else %}
+                    {% endfor %}
+                    {% else %}
                     <p class="text-muted text-center">Aucune ligne de dialogue</p>
                     {% endif %}
                 </div>
@@ -76,10 +87,8 @@ simulation.title }}{% endblock %} {% block content %}
                 <div class="card-body">
                     {% for dialogue in dialogues %}
                     <div class="d-flex align-items-center mb-2">
-                        <span
-                            class="badge {% if dialogue == current_dialogue %}bg-primary{% else %}bg-secondary{% endif %} me-2">{{ dialogue.order }}</span>
-                        <small
-                            class="{% if dialogue == current_dialogue %}fw-bold{% endif %}">{{ dialogue.title }}</small>
+                        <span class="badge {% if dialogue == current_dialogue %}bg-primary{% else %}bg-secondary{% endif %} me-2">{{ dialogue.order }}</span>
+                        <small class="{% if dialogue == current_dialogue %}fw-bold{% endif %}">{{ dialogue.title }}</small>
                     </div>
                     {% endfor %}
                 </div>
@@ -88,23 +97,15 @@ simulation.title }}{% endblock %} {% block content %}
             <div class="card">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-tasks"></i> Progression</h5>
-                    <!-- Settings button: Opens modal for dialogue playback preferences -->
-                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal"
-                        data-bs-target="#settingsModal">
+                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#settingsModal">
                         <i class="fas fa-cog"></i>
                     </button>
                 </div>
                 <div class="card-body">
-                    <p>
-                        Dialogue actuel:
-                        <strong>{{ current_dialogue.order }}/{{ dialogues.count }}</strong>
-                    </p>
-                    <p>
-                        Lignes: <strong id="completed-lines">0</strong>/<strong>{{ lines.count }}</strong>
-                    </p>
+                    <p>Dialogue actuel: <strong>{{ current_dialogue.order }}/{{ dialogues.count }}</strong></p>
+                    <p>Lignes: <strong id="completed-lines">0</strong>/<strong>{{ lines.count }}</strong></p>
                     <div class="progress mb-3">
-                        <div class="progress-bar bg-success" id="progress-bar" role="progressbar" style="width: 0%">
-                        </div>
+                        <div class="progress-bar bg-success" id="progress-bar" role="progressbar" style="width: 0%"></div>
                     </div>
                     <button id="next-dialogue-btn" class="btn btn-primary w-100 mb-2" disabled>
                         <i class="fas fa-forward"></i> Dialogue suivant
@@ -118,21 +119,17 @@ simulation.title }}{% endblock %} {% block content %}
     </div>
 </div>
 
-<!-- Settings Modal: Configure dialogue playback behavior -->
+<!-- Settings Modal -->
 <div class="modal fade" id="settingsModal" tabindex="-1" aria-labelledby="settingsModalLabel">
     <div class="modal-dialog">
         <div class="modal-content">
-            <!-- Modal Header -->
             <div class="modal-header">
                 <h5 class="modal-title" id="settingsModalLabel">
                     <i class="fas fa-cog"></i> Paramètres de Dialogue
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-
-            <!-- Modal Body: Settings toggles -->
             <div class="modal-body">
-                <!-- Setting 1: Auto-Record -->
                 <div class="mb-4">
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="autoRecordSwitch" />
@@ -141,12 +138,9 @@ simulation.title }}{% endblock %} {% block content %}
                         </label>
                     </div>
                     <small class="text-muted d-block mt-2">
-                        Démarre automatiquement l'enregistrement ou génère l'audio système
-                        lorsqu'une ligne devient active.
+                        Démarre automatiquement l'enregistrement ou génère l'audio système lorsqu'une ligne devient active.
                     </small>
                 </div>
-
-                <!-- Setting 2: Auto-Play -->
                 <div class="mb-3">
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="autoPlaySwitch" checked />
@@ -159,8 +153,6 @@ simulation.title }}{% endblock %} {% block content %}
                     </small>
                 </div>
             </div>
-
-            <!-- Modal Footer: Action buttons -->
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times"></i> Fermer
@@ -173,113 +165,76 @@ simulation.title }}{% endblock %} {% block content %}
     </div>
 </div>
 
-{% endblock %} {% block extra_js %}
+{% endblock %}
+
+{% block extra_js %}
 <style>
     .line-item {
         transition: all 0.3s ease;
     }
-
     .line-active {
         border: 3px solid #0d6efd !important;
         box-shadow: 0 0 15px rgba(13, 110, 253, 0.3);
         background-color: #e7f1ff !important;
     }
-
     .line-completed {
         opacity: 0.6;
         border-color: #198754 !important;
     }
 </style>
 <script>
-    // ============================================
-    // SETTINGS MANAGEMENT
-    // ============================================
-
-    /**
-     * Settings object: Stores user preferences for dialogue playback
-     * - autoRecord: Auto-start recording/generation when line becomes active
-     * - autoPlay: Auto-play audio after recording/generation completes
-     */
     const settings = {
-        autoRecord: false,  // Default: OFF (manual control)
-        autoPlay: true      // Default: ON (current behavior)
+        autoRecord: false,
+        autoPlay: true
     };
 
-    /**
-     * Load settings from localStorage
-     * Called on page load to restore user preferences
-     */
     function loadSettings() {
-        // Try to get saved settings from browser storage
         const savedAutoRecord = localStorage.getItem('dialogueAutoRecord');
         const savedAutoPlay = localStorage.getItem('dialogueAutoPlay');
-
-        // Apply saved settings if they exist, otherwise use defaults
+        
         if (savedAutoRecord !== null) {
             settings.autoRecord = savedAutoRecord === 'true';
         }
         if (savedAutoPlay !== null) {
             settings.autoPlay = savedAutoPlay === 'true';
         }
-
-        // Update modal toggle switches to reflect current settings
+        
         document.getElementById('autoRecordSwitch').checked = settings.autoRecord;
         document.getElementById('autoPlaySwitch').checked = settings.autoPlay;
-
-        console.log('Settings loaded:', settings);
     }
 
-    /**
-     * Save settings to localStorage
-     * Called when user clicks "Enregistrer" button in modal
-     */
     function saveSettings() {
-        // Read current state of toggle switches
         settings.autoRecord = document.getElementById('autoRecordSwitch').checked;
         settings.autoPlay = document.getElementById('autoPlaySwitch').checked;
-
-        // Persist to browser storage
+        
         localStorage.setItem('dialogueAutoRecord', settings.autoRecord);
         localStorage.setItem('dialogueAutoPlay', settings.autoPlay);
-
-        console.log('Settings saved:', settings);
-
-        // Close modal using Bootstrap's modal API
+        
         const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
         modal.hide();
-
-        // Show success feedback
+        
         alert('Paramètres enregistrés avec succès!');
-
-        // If auto-record was just enabled, trigger it for current active line
+        
         if (settings.autoRecord) {
             triggerAutoRecord();
         }
     }
 
-    // ============================================
-    // EVENT LISTENERS FOR SETTINGS
-    // ============================================
-
-    // Save button click handler
     document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
-
-    // Load settings when page loads
     loadSettings();
-
-    // ============================================
-    // EXISTING CODE BELOW
-    // ============================================
 
     let mediaRecorder;
     let audioChunks = [];
     let currentLineId = null;
+    let silenceTimer = null;
+    let audioContext = null;
+    let analyser = null;
+    let dataArray = null;
+    let silenceThreshold = 30;
+    let silenceTimeout = 3000;
 
-    // Initialize: highlight first incomplete line
     function highlightCurrentLine() {
         const lines = Array.from(document.querySelectorAll('.line-item'));
-
-        // Find first incomplete line in order
         let currentActiveLine = null;
 
         for (let i = 0; i < lines.length; i++) {
@@ -287,80 +242,78 @@ simulation.title }}{% endblock %} {% block content %}
             const hasAudio = line.querySelector('.audio-player:not(.d-none), .system-audio:not(.d-none)');
 
             if (hasAudio) {
-                // Mark as completed
                 line.classList.add('line-completed');
                 line.classList.remove('line-active');
             } else {
-                // First incomplete line becomes active
                 if (!currentActiveLine) {
                     line.classList.add('line-active');
                     line.classList.remove('line-completed');
                     line.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     currentActiveLine = line;
                 } else {
-                    // All other incomplete lines remain neutral
                     line.classList.remove('line-active', 'line-completed');
                 }
             }
         }
     }
 
-    // Call on page load
     highlightCurrentLine();
 
-    // ============================================
-    // AUTO-RECORD FUNCTIONALITY
-    // ============================================
-
-    /**
-     * Trigger auto-record for the active line
-     * Called after a line is completed and next line becomes active
-     * Only triggers if settings.autoRecord is enabled
-     */
     function triggerAutoRecord() {
-        // Check if auto-record is enabled
         if (!settings.autoRecord) {
-            return; // Manual mode: user must click buttons
+            return;
         }
 
-        // Small delay to allow UI to update
         setTimeout(() => {
-            // Find the currently active line
             const activeLine = document.querySelector('.line-active');
             if (!activeLine) {
-                return; // No active line (dialogue complete)
+                return;
             }
 
             const lineId = activeLine.id.replace('line-', '');
-
-            // Check if it's a user line (has record button) or system line (has play button)
             const recordBtn = activeLine.querySelector('.record-btn');
             const playBtn = activeLine.querySelector('.play-system-btn');
 
             if (recordBtn) {
-                // User line: Auto-trigger recording
-                console.log('Auto-record: Triggering user recording for line', lineId);
                 recordBtn.click();
             } else if (playBtn) {
-                // System line: Auto-trigger TTS generation/playback
-                console.log('Auto-record: Triggering system audio for line', lineId);
                 playBtn.click();
             }
-        }, 500); // 500ms delay for smooth transition
+        }, 500);
     }
 
-    // Trigger auto-record on initial page load if enabled
     triggerAutoRecord();
 
-    // Record button handler
+    // Assign colors based on participant ID to ensure consistency and uniqueness
+    const participantColors = {};
+    const colors = ['btn-primary', 'btn-secondary', 'btn-success', 'btn-danger', 'btn-warning', 'btn-info'];
+    const usedColors = new Set();
+    
+    document.querySelectorAll('.record-btn, .play-system-btn').forEach(btn => {
+        const participantId = btn.dataset.participantId;
+        
+        if (!participantColors[participantId]) {
+            let availableColors = colors.filter(color => !usedColors.has(color));
+            if (availableColors.length === 0) {
+                availableColors = colors; // Reset if all colors used
+                usedColors.clear();
+            }
+            const randomColor = availableColors[Math.floor(Math.random() * availableColors.length)];
+            participantColors[participantId] = randomColor;
+            usedColors.add(randomColor);
+        }
+        
+        const assignedColor = participantColors[participantId];
+        btn.classList.add(assignedColor);
+        btn.dataset.originalColor = assignedColor;
+    });
+
     document.querySelectorAll('.record-btn').forEach(btn => {
         btn.addEventListener('click', async function () {
             const lineId = this.dataset.lineId;
             const lineDiv = document.getElementById(`line-${lineId}`);
 
-            // Check if this is the active line
             if (!lineDiv.classList.contains('line-active')) {
-                //alert('Veuillez compléter les lignes précédentes d\'abord.');
                 return;
             }
 
@@ -368,12 +321,19 @@ simulation.title }}{% endblock %} {% block content %}
             const text = this.querySelector('span');
 
             if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-                // Start recording
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     mediaRecorder = new MediaRecorder(stream);
                     audioChunks = [];
                     currentLineId = lineId;
+
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const source = audioContext.createMediaStreamSource(stream);
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 256;
+                    const bufferLength = analyser.frequencyBinCount;
+                    dataArray = new Uint8Array(bufferLength);
+                    source.connect(analyser);
 
                     mediaRecorder.ondataavailable = (event) => {
                         audioChunks.push(event.data);
@@ -383,34 +343,52 @@ simulation.title }}{% endblock %} {% block content %}
                         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                         await saveRecording(currentLineId, audioBlob);
                         stream.getTracks().forEach(track => track.stop());
+                        if (audioContext) {
+                            audioContext.close();
+                            audioContext = null;
+                        }
                     };
 
                     mediaRecorder.start();
+                    startSilenceDetection();
                     icon.className = 'fas fa-stop';
                     text.textContent = 'Arrêter';
-                    this.classList.remove('btn-danger');
+                    const originalColor = this.dataset.originalColor;
+                    this.classList.remove(originalColor);
                     this.classList.add('btn-warning');
                 } catch (err) {
                     alert('Erreur: ' + err.message);
                 }
             } else {
-                // Stop recording
                 mediaRecorder.stop();
+                if (silenceTimer) {
+                    clearTimeout(silenceTimer);
+                    silenceTimer = null;
+                }
                 icon.className = 'fas fa-microphone';
                 text.textContent = 'Enregistrer';
+                const originalColor = this.dataset.originalColor;
                 this.classList.remove('btn-warning');
-                this.classList.add('btn-danger');
+                this.classList.add(originalColor);
             }
         });
     });
 
-    // Save recording to server
     async function saveRecording(lineId, audioBlob) {
+        if (audioBlob.size < 1000) {
+            const lineDiv = document.getElementById(`line-${lineId}`);
+            const retryBtn = lineDiv.querySelector('.retry-btn');
+            const silenceMessage = lineDiv.querySelector('.silence-message');
+            
+            retryBtn.classList.remove('d-none');
+            silenceMessage.classList.remove('d-none');
+            return;
+        }
+        
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = async () => {
             const base64Audio = reader.result;
-
             const formData = new FormData();
             formData.append('audio_data', base64Audio);
 
@@ -428,24 +406,20 @@ simulation.title }}{% endblock %} {% block content %}
                     audioPlayer.src = data.audio_url;
                     audioPlayer.classList.remove('d-none');
 
-                    // SETTINGS INTEGRATION: Check autoPlay setting
                     if (settings.autoPlay) {
-                        // Auto-play enabled: Play audio and move to next line when finished
                         audioPlayer.play().catch(err => {
                             console.log('Autoplay blocked:', err);
                         });
                         audioPlayer.onended = () => {
                             updateProgress();
                             highlightCurrentLine();
-                            triggerAutoRecord(); // Trigger next line if autoRecord is ON
+                            triggerAutoRecord();
                         };
                     } else {
-                        // Auto-play disabled: User must manually click play
-                        // Setup onended handler for when user plays manually
                         audioPlayer.onended = () => {
                             updateProgress();
                             highlightCurrentLine();
-                            triggerAutoRecord(); // Trigger next line if autoRecord is ON
+                            triggerAutoRecord();
                         };
                         updateProgress();
                     }
@@ -458,13 +432,70 @@ simulation.title }}{% endblock %} {% block content %}
         };
     }
 
-    // Play system audio
+    document.querySelectorAll('.retry-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const lineId = this.dataset.lineId;
+            const lineDiv = document.getElementById(`line-${lineId}`);
+            const recordBtn = lineDiv.querySelector('.record-btn');
+            const silenceMessage = lineDiv.querySelector('.silence-message');
+            
+            this.classList.add('d-none');
+            silenceMessage.classList.add('d-none');
+            recordBtn.click();
+        });
+    });
+
+    function startSilenceDetection() {
+        function checkAudioLevel() {
+            if (!analyser || !dataArray) return;
+            
+            analyser.getByteFrequencyData(dataArray);
+            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+            
+            if (average > silenceThreshold) {
+                if (silenceTimer) {
+                    clearTimeout(silenceTimer);
+                    silenceTimer = null;
+                }
+            } else {
+                if (!silenceTimer) {
+                    silenceTimer = setTimeout(() => {
+                        if (mediaRecorder && mediaRecorder.state === 'recording') {
+                            mediaRecorder.stop();
+                            
+                            const lineDiv = document.getElementById(`line-${currentLineId}`);
+                            const recordBtn = lineDiv.querySelector('.record-btn');
+                            const retryBtn = lineDiv.querySelector('.retry-btn');
+                            const silenceMessage = lineDiv.querySelector('.silence-message');
+                            
+                            const icon = recordBtn.querySelector('i');
+                            const text = recordBtn.querySelector('span');
+                            const originalColor = recordBtn.dataset.originalColor;
+                            
+                            icon.className = 'fas fa-microphone';
+                            text.textContent = 'Enregistrer';
+                            recordBtn.classList.remove('btn-warning');
+                            recordBtn.classList.add(originalColor);
+                            
+                            retryBtn.classList.remove('d-none');
+                            silenceMessage.classList.remove('d-none');
+                        }
+                    }, silenceTimeout);
+                }
+            }
+            
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                requestAnimationFrame(checkAudioLevel);
+            }
+        }
+        checkAudioLevel();
+    }
+
     document.querySelectorAll('.play-system-btn').forEach(btn => {
         btn.addEventListener('click', async function () {
             const lineId = this.dataset.lineId;
             const lineDiv = document.getElementById(`line-${lineId}`);
 
-            // Check if this is the active line
             if (!lineDiv.classList.contains('line-active')) {
                 return;
             }
@@ -472,17 +503,15 @@ simulation.title }}{% endblock %} {% block content %}
             const audioPlayer = lineDiv.querySelector('.system-audio');
 
             if (audioPlayer.src) {
-                // Audio already generated, just play it
                 audioPlayer.play().catch(err => {
                     console.log('Autoplay blocked:', err);
                 });
                 audioPlayer.onended = () => {
                     updateProgress();
                     highlightCurrentLine();
-                    triggerAutoRecord(); // Trigger next line if autoRecord is ON
+                    triggerAutoRecord();
                 };
             } else {
-                // Generate TTS audio
                 try {
                     const response = await fetch(`/api/line/${lineId}/generate/`);
                     const data = await response.json();
@@ -491,23 +520,20 @@ simulation.title }}{% endblock %} {% block content %}
                         audioPlayer.src = data.audio_url;
                         audioPlayer.classList.remove('d-none');
 
-                        // SETTINGS INTEGRATION: Check autoPlay setting
                         if (settings.autoPlay) {
-                            // Auto-play enabled: Play immediately
                             audioPlayer.play().catch(err => {
                                 console.log('Autoplay blocked:', err);
                             });
                             audioPlayer.onended = () => {
                                 updateProgress();
                                 highlightCurrentLine();
-                                triggerAutoRecord(); // Trigger next line if autoRecord is ON
+                                triggerAutoRecord();
                             };
                         } else {
-                            // Auto-play disabled: User must manually click play
                             audioPlayer.onended = () => {
                                 updateProgress();
                                 highlightCurrentLine();
-                                triggerAutoRecord(); // Trigger next line if autoRecord is ON
+                                triggerAutoRecord();
                             };
                             updateProgress();
                         }
@@ -521,7 +547,6 @@ simulation.title }}{% endblock %} {% block content %}
         });
     });
 
-    // Update progress bar
     function updateProgress() {
         const totalLines = document.querySelectorAll('[id^="line-"]').length;
         const recordedLines = document.querySelectorAll('.audio-player:not(.d-none), .system-audio:not(.d-none)').length;
@@ -529,43 +554,40 @@ simulation.title }}{% endblock %} {% block content %}
         document.getElementById('progress-bar').style.width = percentage + '%';
         document.getElementById('completed-lines').textContent = recordedLines;
 
-        // Enable next dialogue button when all lines completed
         if (recordedLines === totalLines && totalLines > 0) {
             document.getElementById('next-dialogue-btn').disabled = false;
             generateCompleteAudio();
         }
     }
 
-    // Generate complete dialogue audio
     async function generateCompleteAudio() {
-        const dialogueId = {{ current_dialogue.id }};
-
-    const completeCard = document.getElementById('complete-audio-card');
-
-    // Check if already generated
-    if (!completeCard.classList.contains('d-none')) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/dialogue/${dialogueId}/generate-complete/`);
-        const data = await response.json();
-
-        if (data.success) {
-            const player = document.getElementById('complete-audio-player');
-            const download = document.getElementById('complete-audio-download');
-
-            player.src = data.audio_url;
-            download.href = data.audio_url;
-            completeCard.classList.remove('d-none');
-            completeCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const dialogueId = {{ current_dialogue.id|default:'null' }};
+        if (!dialogueId) return;
+        
+        const completeCard = document.getElementById('complete-audio-card');
+        
+        if (!completeCard.classList.contains('d-none')) {
+            return;
         }
-    } catch (err) {
-        console.error('Error generating complete audio:', err);
+        
+        try {
+            const response = await fetch(`/api/dialogue/${dialogueId}/generate-complete/`);
+            const data = await response.json();
+            
+            if (data.success) {
+                const player = document.getElementById('complete-audio-player');
+                const download = document.getElementById('complete-audio-download');
+                
+                player.src = data.audio_url;
+                download.href = data.audio_url;
+                completeCard.classList.remove('d-none');
+                completeCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        } catch (err) {
+            console.error('Error generating complete audio:', err);
+        }
     }
-  }
 
-    // Next dialogue button handler
     document.getElementById('next-dialogue-btn').addEventListener('click', function () {
         window.location.href = "{% url 'simulator:next_dialogue' simulation.pk %}";
     });
