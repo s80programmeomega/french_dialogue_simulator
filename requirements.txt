@@ -2,15 +2,11 @@ django
 django-watchfiles
 django-browser-reload
 django-cleanup
-dj-database-url
 django-extensions
+gunicorn
 whitenoise
 psycopg2-binary
-levenshtein
-phonemizer
-# biopython
-# openai-whisper
-PyAudio
-pydub
+dj-database-url
 gtts
-Werkzeug
+pydub
+levenshtein

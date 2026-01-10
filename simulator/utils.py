@@ -1,9 +1,6 @@
 import os
 import random
 import uuid
-import wave
-
-import pyaudio
 
 # import whisper
 from django.conf import settings
@@ -28,62 +25,8 @@ def upload_path(instance):
 
 
 # ========================
-# Audio Recording Module
+# Audio Conversion Module
 # ========================
-def record_audio(user, duration: int = 5) -> None:
-
-    chunk = 1024
-    FORMAT = pyaudio.paInt16
-    channels = 1
-    rate = 16000  # Sample rate compatible with Whisper
-
-    media_path = os.path.join(settings.MEDIA_ROOT, "user_audio", user.email)
-
-    now = timezone.now()
-    timestamp = now.strftime("%Y%m%d_%H%M%S")
-
-    filename = os.path.join(media_path, f"{timestamp}.wav")
-
-    os.makedirs(media_path, exist_ok=True)
-
-    p = pyaudio.PyAudio()
-
-    try:
-        stream = p.open(
-            format=FORMAT,
-            channels=channels,
-            rate=rate,
-            input=True,
-            frames_per_buffer=chunk,
-        )
-
-        frames = []
-        print(f"Recording {duration} seconds...")
-
-        # Capture audio in chunks to prevent buffer overflow
-        for _ in range(0, int(rate / chunk * duration)):
-            data = stream.read(chunk, exception_on_overflow=False)
-            frames.append(data)
-
-        # Save raw audio data
-        with wave.open(filename, "wb") as wf:
-            wf.setnchannels(channels)
-            wf.setsampwidth(p.get_sample_size(FORMAT))
-            wf.setframerate(rate)
-            wf.writeframes(b"".join(frames))
-
-    finally:
-        stream.stop_stream()
-        stream.close()
-        p.terminate()
-
-    print(f"Recording saved to {filename}")
-    convert_audio(
-        input_path=filename,
-        output_format="mp3",
-    )
-
-
 def convert_audio(input_path, output_format="mp3", bitrate=None, mpeg_layer=None):
     output_path = str(input_path).replace("wav", output_format)
     # Load input file
