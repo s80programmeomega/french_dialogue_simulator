@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: french-dialogue-simulator
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn core.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        sync: false
+
+databases:
+  - name: french-dialogue-db
+    databaseName: french_dialogue_db
+    user: french_dialogue_user

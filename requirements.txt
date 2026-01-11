@@ -1,14 +1,13 @@
-django
-django-watchfiles
-django-browser-reload
-django-cleanup
-django-extensions
-numpy
-levenshtein
-phonemizer
-# biopython
-# openai-whisper
-pydub
-PyAudio
-gtts
-Werkzeug
+Django>=5.2.9
+gunicorn>=21.2.0
+whitenoise>=6.6.0
+psycopg2-binary>=2.9.9
+dj-database-url>=2.1.0
+django-cleanup>=8.0.0
+django-extensions>=3.2.0
+gtts>=2.5.0
+pydub>=0.25.1
+numpy>=1.26.0
+levenshtein>=0.25.0
+phonemizer>=3.2.0
+Werkzeug>=3.0.0
