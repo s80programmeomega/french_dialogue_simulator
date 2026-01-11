@@ -514,13 +514,14 @@
             } else {
                 try {
                     const response = await fetch(`/api/line/${lineId}/generate/`);
-                    const data = await response.json();
-
-                    if (data.success) {
-                        audioPlayer.src = data.audio_url;
-                        audioPlayer.classList.remove('d-none');
+                    
+                    if (response.ok) {
+                        const audioBlob = await response.blob();
+                        const audioUrl = URL.createObjectURL(audioBlob);
                         
-                        // Wait for audio to load before playing
+                        audioPlayer.src = audioUrl;
+                        audioPlayer.classList.remove('d-none');
+
                         audioPlayer.addEventListener('loadeddata', function() {
                             if (settings.autoPlay) {
                                 audioPlayer.play().catch(err => {
@@ -539,7 +540,7 @@
                             updateProgress();
                         }
                     } else {
-                        alert('Erreur: ' + data.error);
+                        alert('Erreur lors de la génération audio');
                     }
                 } catch (err) {
                     alert('Erreur: ' + err.message);

@@ -114,40 +114,30 @@ def record_line(request, line_id):
 
 
 def generate_system_audio(request, line_id):
+    from django.http import HttpResponse
+    import tempfile
+    
     line = get_object_or_404(DialogueLine, pk=line_id)
 
     if not line.participant.is_system:
         return JsonResponse({"success": False, "error": "Not a system line"})
 
-    from django.conf import settings
-    from django.core.files import File
-
-    # Check if recording exists and file is accessible
-    try:
-        recording = LineRecording.objects.get(dialogue_line=line)
-        if os.path.exists(recording.audio_file.path):
-            return JsonResponse({"success": True, "audio_url": recording.audio_file.url})
-    except (LineRecording.DoesNotExist, ValueError, FileNotFoundError):
-        pass
-
-    # Generate TTS audio in temp location first
-    import tempfile
+    # Generate TTS audio in memory
     with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp:
         temp_path = tmp.name
     
     text_to_speech(line.text, temp_path, lang="fr")
-
-    # Save using Django's FileField
-    with open(temp_path, 'rb') as f:
-        recording, created = LineRecording.objects.update_or_create(
-            dialogue_line=line,
-            defaults={"audio_file": File(f, name=f"system_{line_id}.mp3")}
-        )
     
-    # Cleanup temp file
+    # Read and serve the file directly
+    with open(temp_path, 'rb') as f:
+        audio_data = f.read()
+    
     os.unlink(temp_path)
-
-    return JsonResponse({"success": True, "audio_url": recording.audio_file.url})
+    
+    # Return audio file directly
+    response = HttpResponse(audio_data, content_type='audio/mpeg')
+    response['Content-Disposition'] = f'inline; filename="system_{line_id}.mp3"'
+    return response
 
 
 def generate_complete_dialogue_audio(request, dialogue_id):
