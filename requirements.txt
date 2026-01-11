@@ -11,3 +11,5 @@ numpy>=1.26.0
 levenshtein>=0.25.0
 phonemizer>=3.2.0
 Werkzeug>=3.0.0
+django-watchfiles
+django-browser-reload
