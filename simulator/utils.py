@@ -3,7 +3,10 @@ import random
 import uuid
 import wave
 
-import pyaudio
+try:
+    import pyaudio
+except ImportError:
+    pyaudio = None
 
 # import whisper
 from django.conf import settings
@@ -31,7 +34,9 @@ def upload_path(instance):
 # Audio Recording Module
 # ========================
 def record_audio(user, duration: int = 5) -> None:
-
+    if pyaudio is None:
+        raise ImportError("PyAudio is not available. This function requires local installation.")
+    
     chunk = 1024
     FORMAT = pyaudio.paInt16
     channels = 1
