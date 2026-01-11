@@ -519,22 +519,23 @@
                     if (data.success) {
                         audioPlayer.src = data.audio_url;
                         audioPlayer.classList.remove('d-none');
-
-                        if (settings.autoPlay) {
-                            audioPlayer.play().catch(err => {
-                                console.log('Autoplay blocked:', err);
-                            });
-                            audioPlayer.onended = () => {
-                                updateProgress();
-                                highlightCurrentLine();
-                                triggerAutoRecord();
-                            };
-                        } else {
-                            audioPlayer.onended = () => {
-                                updateProgress();
-                                highlightCurrentLine();
-                                triggerAutoRecord();
-                            };
+                        
+                        // Wait for audio to load before playing
+                        audioPlayer.addEventListener('loadeddata', function() {
+                            if (settings.autoPlay) {
+                                audioPlayer.play().catch(err => {
+                                    console.log('Autoplay blocked:', err);
+                                });
+                            }
+                        }, { once: true });
+                        
+                        audioPlayer.onended = () => {
+                            updateProgress();
+                            highlightCurrentLine();
+                            triggerAutoRecord();
+                        };
+                        
+                        if (!settings.autoPlay) {
                             updateProgress();
                         }
                     } else {
