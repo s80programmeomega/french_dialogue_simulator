@@ -119,23 +119,28 @@ def generate_system_audio(request, line_id):
     if not line.participant.is_system:
         return JsonResponse({"success": False, "error": "Not a system line"})
 
-    try:
-        recording = LineRecording.objects.get(dialogue_line=line)
-        return JsonResponse({"success": True, "audio_url": recording.audio_file.url})
-    except LineRecording.DoesNotExist:
-        pass
-
     from django.conf import settings
 
     output_path = os.path.join(
         settings.MEDIA_ROOT, "simulations", "lines", f"system_{line_id}.mp3"
     )
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    
+    # Check if recording exists in DB and file exists on disk
+    try:
+        recording = LineRecording.objects.get(dialogue_line=line)
+        if os.path.exists(recording.audio_file.path):
+            return JsonResponse({"success": True, "audio_url": recording.audio_file.url})
+    except (LineRecording.DoesNotExist, ValueError, FileNotFoundError):
+        pass
 
+    # Generate TTS audio
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     text_to_speech(line.text, output_path, lang="fr")
 
-    recording = LineRecording.objects.create(
-        dialogue_line=line, audio_file=f"simulations/lines/system_{line_id}.mp3"
+    # Create or update recording
+    recording, created = LineRecording.objects.update_or_create(
+        dialogue_line=line,
+        defaults={"audio_file": f"simulations/lines/system_{line_id}.mp3"}
     )
 
     return JsonResponse({"success": True, "audio_url": recording.audio_file.url})
