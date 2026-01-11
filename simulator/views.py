@@ -120,12 +120,9 @@ def generate_system_audio(request, line_id):
         return JsonResponse({"success": False, "error": "Not a system line"})
 
     from django.conf import settings
+    from django.core.files import File
 
-    output_path = os.path.join(
-        settings.MEDIA_ROOT, "simulations", "lines", f"system_{line_id}.mp3"
-    )
-    
-    # Check if recording exists in DB and file exists on disk
+    # Check if recording exists and file is accessible
     try:
         recording = LineRecording.objects.get(dialogue_line=line)
         if os.path.exists(recording.audio_file.path):
@@ -133,15 +130,22 @@ def generate_system_audio(request, line_id):
     except (LineRecording.DoesNotExist, ValueError, FileNotFoundError):
         pass
 
-    # Generate TTS audio
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    text_to_speech(line.text, output_path, lang="fr")
+    # Generate TTS audio in temp location first
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as tmp:
+        temp_path = tmp.name
+    
+    text_to_speech(line.text, temp_path, lang="fr")
 
-    # Create or update recording
-    recording, created = LineRecording.objects.update_or_create(
-        dialogue_line=line,
-        defaults={"audio_file": f"simulations/lines/system_{line_id}.mp3"}
-    )
+    # Save using Django's FileField
+    with open(temp_path, 'rb') as f:
+        recording, created = LineRecording.objects.update_or_create(
+            dialogue_line=line,
+            defaults={"audio_file": File(f, name=f"system_{line_id}.mp3")}
+        )
+    
+    # Cleanup temp file
+    os.unlink(temp_path)
 
     return JsonResponse({"success": True, "audio_url": recording.audio_file.url})
 
