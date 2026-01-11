@@ -16,4 +16,5 @@ else:
     print('Admin user already exists')
 END
 
+python manage.py seed_dialogues
 python manage.py create_sample_data
